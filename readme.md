@@ -10,6 +10,7 @@ Add two git aliases:
 1. `git config --global alias.share '!npx git-share share'`
 1. `git config --global alias.take '!npx git-share take'`
 
+You can also install the package using `npm i -g git-share` to skip installation on each run.
 
 ## Usage
 
