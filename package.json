@@ -1,6 +1,6 @@
 {
   "name": "git-share",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A CLI for quickly sending your unfinished changes in a git repo to someone else.",
   "main": "./src/index.js",
   "scripts": {
