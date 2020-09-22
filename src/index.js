@@ -34,7 +34,7 @@ async function index() {
   await git.raw('add', '-A')
 
   console.log('Committing')
-  await git.commit('Sharing 💙')
+  await git.raw('commit', '--no-verify', '-m', 'Sharing 💙')
 
   console.log('Pushing')
   await git.push('origin', branchName, { '--set-upstream': null })
