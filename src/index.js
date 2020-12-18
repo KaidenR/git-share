@@ -1,51 +1,53 @@
 #!/usr/bin/env node
 
-const git = require('simple-git')()
-const inquirer = require('inquirer')
+const cli = require('./cli')
+const config = require('./config')
+const git = require('./git')
 
 const command = process.argv[2]
 
 const ShareBranchPrefix = 'share'
 
 async function run() {
+  await promptAndInstallAliasIfNeeded()
+
   if (!command || command === 'share') {
-    await index()
+    await share()
   } else if (command === 'take') {
     await take()
   } else {
-    throw new Error(`Invalid command: "${command}". Must be null/"share" or "take".`)
+    throw new Error(`Invalid command: "${command}". Must be "share" or "take".`)
   }
 }
 
-async function index() {
-  const status = await git.status()
-  if (status.isClean()) {
+async function share() {
+  if (await git.isRepoClean()) {
     console.log('\n🤨 No changes to share\n')
     return
   }
 
-  const originalBranchName = status.current
+  const originalBranch = await git.getCurrentBranchName()
+  const newShareBranch = generateShareBranchName()
 
-  const branchName = generateShareBranchName()
-  console.log(`Checking out new branch: "${branchName}"`)
-  await git.checkoutLocalBranch(branchName)
+  console.log(`Checking out new branch: "${newShareBranch}"`)
+  await git.checkoutLocalBranch(newShareBranch)
 
   console.log('Adding all changes')
-  await git.raw('add', '-A')
+  await git.addAllChanges()
 
   console.log('Committing')
-  await git.raw('commit', '--no-verify', '-m', 'Sharing 💙')
+  await git.commitNoVerify('💙 Sharing')
 
   console.log('Pushing')
-  await git.push('origin', branchName, { '--set-upstream': null })
+  await git.push(newShareBranch)
 
-  console.log(`Checking out "${originalBranchName}"`)
-  await git.checkout(originalBranchName)
+  console.log(`Checking out "${originalBranch}"`)
+  await git.checkout(originalBranch)
 
-  console.log(`Deleting local share branch "${branchName}"`)
-  await git.deleteLocalBranch(branchName)
+  console.log(`Deleting local share branch "${newShareBranch}"`)
+  await git.deleteLocalBranch(newShareBranch)
 
-  console.log(`\n🤝 Shared branch: "${branchName}"\n`)
+  console.log(`\n🤝 Shared branch: "${newShareBranch}"\n`)
 }
 
 function generateShareBranchName() {
@@ -66,34 +68,31 @@ async function take() {
   await git.mergeFromTo(branchName, 'master')
 
   console.log('Resetting changes into working tree')
-  await git.reset(['HEAD^'])
+  await git.resetLastCommitIntoWorkingTree()
 
 
   console.log('Adding changes to index')
-  await git.raw('add', '-A')
+  await git.addAllChanges()
 
   const shortBranchName = branchName.replace('origin/', '')
   console.log(`Deleting remote branch "${shortBranchName}"`)
-  await git.push('origin', shortBranchName, {'--delete': null })
+  await git.deleteRemoteBranch(shortBranchName)
 
   console.log(`\n🤝 Changes fetched from shared branch "${shortBranchName}"\n`)
 }
 
 async function updateBranches() {
-  const status = await git.status()
-
-  const isTrackingARemoteBranch = !!status.tracking
-  if (isTrackingARemoteBranch) {
+  if (await git.isTrackingARemoteBranch()) {
     console.log('Pulling')
     await git.pull()
   } else {
     console.log('Fetching sharing branches')
-    await git.fetch('origin', `refs/heads/${ShareBranchPrefix}/*:refs/remotes/origin/${ShareBranchPrefix}/*`)
+    await git.fetchBranchesStartingWith(ShareBranchPrefix)
   }
 }
 
 async function getSelectedBranchName() {
-  const { all: branchNames } = await git.branch(['--remotes', '--list' , `origin/${ShareBranchPrefix}/*`])
+  const branchNames = await git.getAllBranchNamesStartingWith(ShareBranchPrefix)
 
   if (branchNames.length === 0)
     return null
@@ -101,14 +100,7 @@ async function getSelectedBranchName() {
   if (branchNames.length === 1)
     return branchNames[0]
 
-  const { branchName } = await inquirer.prompt([{
-    name: 'branchName',
-    message: 'Which share branch?',
-    type: 'list',
-    choices: await getBranchChoices(branchNames)
-  }])
-
-  return branchName
+  return cli.promptForBranchName(await getBranchChoices(branchNames))
 }
 
 async function getBranchChoices(branchNames) {
@@ -118,19 +110,34 @@ async function getBranchChoices(branchNames) {
 }
 
 async function getBranchChoice(fullBranchName) {
-  const info = await git.show(fullBranchName)
-
-  const [infoLine, authorLine, dateLine] = info.split('\n')
-  const branchName = fullBranchName.replace('origin/', '')
-  const author = authorLine.split(/:\s+/)[1].split(' ')[0]
-  const date = new Date(dateLine.split(/:\s+/)[1])
-  const formattedDate = date.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
+  const branch = await git.getBranchInfo(fullBranchName)
+  const formattedDate = branch.date.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
 
   return {
-    name: `"${branchName}" - by ${author} - on ${formattedDate}`,
+    name: `"${branch.name}" - by ${branch.author} - on ${formattedDate}`,
     value: fullBranchName,
-    date
+    date: branch.date
   }
+}
+
+async function promptAndInstallAliasIfNeeded() {
+  const executingPath = process.env._
+
+  if (!executingPath.endsWith('npx') || config.get('skipAliasCheck') || await git.getConfigAlias('share'))
+    return
+
+  if (await cli.promptForShouldInstallGitAliases()) {
+    await installGitAliases()
+  } else  {
+    config.set('skipAliasCheck', true)
+  }
+}
+
+async function installGitAliases() {
+  await git.addConfigAlias('share', '!npx git-share share')
+  await git.addConfigAlias('take', '!npx git-share take')
+
+  console.log('🤩 Success! Now you can share your changes with ✨git share✨ and get changes from others with ✨git take✨!')
 }
 
 
