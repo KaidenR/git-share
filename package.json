@@ -3,9 +3,6 @@
   "version": "1.0.1",
   "description": "A CLI for quickly sending your unfinished changes in a git repo to someone else.",
   "main": "./src/index.js",
-  "scripts": {
-    "build": "babel src --out-dir dist"
-  },
   "bin": "./src/index.js",
   "engines": {
     "node": ">=10"
