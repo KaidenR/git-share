@@ -1,11 +1,11 @@
 const git = require('simple-git')()
 
 module.exports = {
-  checkoutLocalBranch: git.checkoutLocalBranch,
-  checkout: git.checkout,
-  deleteLocalBranch: git.deleteLocalBranch,
-  mergeFromTo: git.mergeFromTo,
-  pull: git.pull,
+  checkoutLocalBranch: git.checkoutLocalBranch.bind(git),
+  checkout: git.checkout.bind(git),
+  deleteLocalBranch: git.deleteLocalBranch.bind(git),
+  mergeFromTo: git.mergeFromTo.bind(git),
+  pull: git.pull.bind(git),
 
   async isRepoClean() {
     const status = await git.status()
@@ -60,7 +60,7 @@ module.exports = {
   },
 
   async getBranchInfo(branchName) {
-    const [infoLine, authorLine, dateLine] = await git.show(branchName)
+    const [infoLine, authorLine = '', dateLine] = await git.show(branchName)
 
     const date = new Date(dateLine.split(/:\s+/)[1])
 
