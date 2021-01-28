@@ -58,6 +58,7 @@ function generateShareBranchName() {
 async function take() {
   await updateBranches()
 
+  const originalBranch = await git.getCurrentBranchName()
   const branchName = await getSelectedBranchName()
   if (!branchName) {
     console.log(`\n😢  No sharing branches found\n`)
@@ -65,7 +66,7 @@ async function take() {
   }
 
   console.log('Merging share branch')
-  await git.mergeFromTo(branchName, 'master')
+  await git.mergeFromTo(branchName, originalBranch)
 
   console.log('Resetting changes into working tree')
   await git.resetLastCommitIntoWorkingTree()

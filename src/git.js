@@ -60,7 +60,11 @@ module.exports = {
   },
 
   async getBranchInfo(branchName) {
-    const [infoLine, authorLine = '', dateLine] = await git.show(branchName)
+    let showResults = await git.show(branchName)
+    if (typeof showResults === 'string')
+      showResults = showResults.split('\n')
+
+    const [infoLine, authorLine = '', dateLine] = showResults
 
     const date = new Date(dateLine.split(/:\s+/)[1])
 
