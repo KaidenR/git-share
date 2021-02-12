@@ -1,6 +1,7 @@
 const git = require('simple-git')()
 
 git.env({
+  ...process.env,
   HUSKY_SKIP_HOOKS: 1
 })
 
