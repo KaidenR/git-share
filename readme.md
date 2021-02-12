@@ -22,6 +22,4 @@ Running `git take` will pull down that branch, apply the changes to your working
 
 ## Publishing
 
-1. Bump the version number in the `package.json`
-1. Commit & push
-1. Run `npm publish`
+1. Run `npm run release`

@@ -10,8 +10,14 @@
   "keywords": [],
   "author": "Kaiden Rawlinson",
   "license": "ISC",
+  "scripts": {
+    "release": "np"
+  },
   "dependencies": {
     "inquirer": "^7.3.3",
     "simple-git": "^2.20.1"
+  },
+  "devDependencies": {
+    "np": "^7.3.0"
   }
 }
