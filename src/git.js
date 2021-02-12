@@ -1,5 +1,9 @@
 const git = require('simple-git')()
 
+git.env({
+  HUSKY_SKIP_HOOKS: 1
+})
+
 module.exports = {
   checkoutLocalBranch: git.checkoutLocalBranch.bind(git),
   checkout: git.checkout.bind(git),
