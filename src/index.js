@@ -122,9 +122,9 @@ async function getBranchChoice(fullBranchName) {
 }
 
 async function promptAndInstallAliasIfNeeded() {
-  const executingPath = process.env._
+  const isExecutingFromNpx = process.argv.some(a => a.includes('npx'))
 
-  if (!executingPath.endsWith('npx') || config.get('skipAliasCheck') || await git.getConfigAlias('share'))
+  if (!isExecutingFromNpx || config.get('skipAliasCheck') || await git.getConfigAlias('share'))
     return
 
   if (await cli.promptForShouldInstallGitAliases()) {
